@@ -1,0 +1,3 @@
+[submodule "movietown"]
+	path = movietown
+	url = git@github.com:obaltian/docker-telegraf-influx-grafana-stack-with-movietown.git
