@@ -1,39 +1,98 @@
 version: '3.6'
 services:
-  telegraf:
-    image: telegraf:1.18-alpine
-    volumes:
-    - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+  rabbit:
+    extends:
+      file: movietown/docker-compose.yml
+      service: rabbit
+
+  mongodb:
+    extends:
+      file: movietown/docker-compose.yml
+      service: mongodb
+
+  redis:
+    extends:
+      file: movietown/docker-compose.yml
+      service: redis
+
+  elastic:
+    extends:
+      file: movietown/docker-compose.yml
+      service: elastic
+
+  backend:
+    container_name: backend
     depends_on:
-      - influxdb
-    links:
-      - influxdb
+      - rabbit
+      - mongodb
+      - redis
+      - elastic
+    build:
+      context: movietown
+    # flask requires SIGINT to stop gracefully
+    # (default stop signal from Compose is SIGTERM)
+    stop_signal: SIGINT
+    command: python main.py  # TODO: change to gunicorn
+
+  worker:
+    container_name: worker
+    depends_on:
+      - backend
+      - mongodb
+      - redis
+      - elastic
+    build:
+      context: movietown
+    command: python worker.py
+
+  web:
+    image: nginx
+    volumes:
+      - ./nginx/nginx.conf:/tmp/nginx.conf
+    environment:
+      - FLASK_SERVER_ADDR=backend:9091
     ports:
-    - '127.0.0.1:8125:8125/udp'
+      - 80:80
+    depends_on:
+      - backend
+    command: /bin/bash -c "envsubst < /tmp/nginx.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
   influxdb:
-    image: influxdb:1.8-alpine
+    image: influxdb:1.8
     env_file: configuration.env
     ports:
-      - '127.0.0.1:8086:8086'
+      - 127.0.0.1:8086:8086
     volumes:
       - ./:/imports
-      - influxdb_data:/var/lib/influxdb
+      - influxdb-data:/var/lib/influxdb
+
+  telegraf:
+    image: telegraf:1.18
+    depends_on:
+      - influxdb
+    ports:
+      - 127.0.0.1:8125:8125/udp
+    volumes:
+      - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: /bin/bash -c "chmod 666 /var/run/docker.sock && /entrypoint.sh telegraf"
 
   grafana:
     image: grafana/grafana:8.0.2
     depends_on:
       - influxdb
     env_file: configuration.env
-    links:
-      - influxdb
     ports:
-      - '127.0.0.1:3000:3000'
+      - 127.0.0.1:3000:3000
     volumes:
-      - grafana_data:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
       - ./grafana/provisioning/:/etc/grafana/provisioning/
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
 
 volumes:
-  grafana_data: {}
-  influxdb_data: {}
+  grafana-data: {}
+  influxdb-data: {}
+  rabbitmq-data: {}
+  mongodb-data: {}
+  redis-data: {}
+  elastic-data: {}

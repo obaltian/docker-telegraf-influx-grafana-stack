@@ -13,17 +13,17 @@ $ docker-compose up
 ## Services and Ports
 
 ### Grafana
-- URL: http://localhost:3000 
-- User: admin 
-- Password: admin 
+- URL: http://localhost:3000
+- User: admin
+- Password: admin
 
 ### Telegraf
 - Port: 8125 UDP (StatsD input)
 
 ### InfluxDB
 - Port: 8086 (HTTP API)
-- User: admin 
-- Password: admin 
+- User: admin
+- Password: admin
 - Database: influx
 
 
@@ -64,8 +64,8 @@ $ php example.php
 Sending Random metrics. Use Ctrl+C to stop.
 ..........................^C
 Runtime:	0.88382697105408 Seconds
-Ops:		27 
-Ops/s:		30.548965899738 
+Ops:		27
+Ops/s:		30.548965899738
 Killed by Ctrl+C
 ```
 
@@ -73,3 +73,10 @@ Killed by Ctrl+C
 
 The MIT License (MIT). Please see [License File](LICENSE) for more information.
 
+
+```
+docker-compose build
+docker-compose up
+docker-compose exec movietown-app python init_db.py
+
+siege -c20 -t10S 'http://localhost:80/login POST username=pss&passwordOne=12345'
