@@ -29,13 +29,24 @@ services:
       - elastic
     build:
       context: movietown
-    # flask requires SIGINT to stop gracefully
-    # (default stop signal from Compose is SIGTERM)
-    stop_signal: SIGINT
-    command: python main.py  # TODO: change to gunicorn
+    volumes:
+      - ./movietown:/python-flask
+    stop_signal: SIGINT  # flask requires SIGINT to stop gracefully (default stop signal from Compose is SIGTERM)
+    command: gunicorn --bind=0.0.0.0:9091 --workers=2 'main:get_app()'
 
-  worker:
-    container_name: worker
+  worker1:
+    container_name: worker1
+    depends_on:
+      - backend
+      - mongodb
+      - redis
+      - elastic
+    build:
+      context: movietown
+    command: python worker.py
+
+  worker2:
+    container_name: worker2
     depends_on:
       - backend
       - mongodb
