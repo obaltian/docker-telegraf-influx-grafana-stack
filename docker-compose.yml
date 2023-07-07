@@ -45,7 +45,7 @@ services:
       context: movietown
     command: python worker.py
 
-  web:
+  nginx:
     image: nginx
     volumes:
       - ./nginx/nginx.conf:/tmp/nginx.conf
@@ -67,7 +67,7 @@ services:
       - influxdb-data:/var/lib/influxdb
 
   telegraf:
-    image: telegraf:1.18
+    image: telegraf:1.25
     depends_on:
       - influxdb
     ports:
